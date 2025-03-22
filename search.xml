@@ -2,7 +2,7 @@
 <search>
   <entry>
     <title>2022强网杯house_of_cat</title>
-    <url>/:/abbrlink</url>
+    <url>/posts/2022qwbhouse_of_cat.html</url>
     <content><![CDATA[<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><blockquote>
 <p>[!IMPORTANT]</p>
 <p>前面对<code>House of cat</code>的调用链进行了一个分析，这次通过例题来看下是如何实现的</p>
@@ -78,7 +78,7 @@
   </entry>
   <entry>
     <title>House of apple2调试</title>
-    <url>/:/abbrlink</url>
+    <url>/posts/Houseofapple2%E8%B0%83%E8%AF%95.html</url>
     <content><![CDATA[<h1 id="调试"><a href="#调试" class="headerlink" title="调试"></a>调试</h1><p>这次依然是利用写poc的方式来一步一步调试</p>
 <p>调用链：</p>
 <h2 id="1、exit-–-run-exit-handlers"><a href="#1、exit-–-run-exit-handlers" class="headerlink" title="1、exit –&gt; __run_exit_handlers"></a>1、exit –&gt; __run_exit_handlers</h2><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="code"><pre><span class="line">exit --&gt; __run_exit_handlers</span><br><span class="line">exit (int status)</span><br><span class="line">&#123;</span><br><span class="line">  __run_exit_handlers (status, &amp;__exit_funcs, true, true);</span><br><span class="line">&#125;</span><br><span class="line">libc_hidden_def (exit)</span><br></pre></td></tr></table></figure></div>
@@ -241,7 +241,7 @@
   </entry>
   <entry>
     <title>QWB-s8 babyheap</title>
-    <url>/:/abbrlink</url>
+    <url>/posts/QWB-s8-babyheap.html</url>
     <content><![CDATA[<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>这道题算是qwb最简单的一道题了，有两种做法，一种是largebin attack，一种是利用任意地址写修改got.plt表.</p>
 <p>该题目主要是只能申请六次chunk。</p>
 <h1 id="large-bin-attack"><a href="#large-bin-attack" class="headerlink" title="large bin attack"></a>large bin attack</h1><p>一次show，通过show在largebin中的chunk就能把libc和heapbase都泄露出来。然后打apple的板子</p>
@@ -278,7 +278,7 @@
   </entry>
   <entry>
     <title>House of cat调试</title>
-    <url>/:/abbrlink</url>
+    <url>/posts/Houseofcat%E8%B0%83%E8%AF%95.html</url>
     <content><![CDATA[<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>感觉有好久都没学新知识了，对高版本堆和IO结构也不是很了解，借着团队里训练的录像好好学习一下</p>
 <p>参考链接：[<a class="link"   href="https://bbs.kanxue.com/thread-273895.htm" >原创]House of cat新型glibc中IO利用手法解析 &amp;&amp; 第六届强网杯House of cat详解-Pwn-看雪-安全社区|安全招聘|kanxue.com<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
 <hr>
@@ -421,7 +421,7 @@
   </entry>
   <entry>
     <title>2024ciscn华南分赛区Pwn</title>
-    <url>/:/abbrlink</url>
+    <url>/posts/2024ciscn%E5%8D%8E%E5%8D%97%E5%88%86%E8%B5%9B%E5%8C%BAPwn.html</url>
     <content><![CDATA[<p>难评。。。</p>
 <h1 id="my-heap"><a href="#my-heap" class="headerlink" title="my_heap"></a>my_heap</h1><details class="red" data-header-exclude><summary><i class="fa-solid fa-chevron-right"></i>考点 </summary>
               <div class='content'>
@@ -515,7 +515,7 @@
   </entry>
   <entry>
     <title>QWB-s8 qroute</title>
-    <url>/:/abbrlink</url>
+    <url>/posts/QWB-s8-qroute.html</url>
     <content><![CDATA[<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>在本次强网杯中这道qroute我们队伍并没有做出来，是赛后复现的</p>
 <h1 id="程序分析"><a href="#程序分析" class="headerlink" title="程序分析"></a>程序分析</h1><p>由于这道题目是由go语言进行编写的，IDA中的代码并不是特别好分析，所以这次采用动静结合的方式进行分析，在分析中发现一部分功能需要进入config模式，但是进入该模式需要验证license，根据程序中的一些函数名猜测license加密用的可能是rc4，但是由于他的key在IDA中可以看到是固定的，所以我们利用gdb进行调试可以调试出license。</p>
 <h2 id="寻找license"><a href="#寻找license" class="headerlink" title="寻找license"></a>寻找license</h2><p><figure class="image-caption"><img  
@@ -583,7 +583,7 @@
   </entry>
   <entry>
     <title>SCTF-kno_puts_revenge详解</title>
-    <url>/:/abbrlink</url>
+    <url>/posts/SCTF-kno_puts_revenge.html</url>
     <content><![CDATA[<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>本次SCTF刚好出了两道关于内核UAF的题目，本文写的是kno_puts revenge；</p>
 <details class="pink" data-header-exclude><summary><i class="fa-solid fa-chevron-right"></i>参考文章： 点击查看 </summary>
               <div class='content'>
@@ -759,7 +759,7 @@
   </entry>
   <entry>
     <title>llvm pass pwn学习（WMCTF2024-babysigin）</title>
-    <url>/:/abbrlink</url>
+    <url>/posts/llvm-pass-pwn1.html</url>
     <content><![CDATA[<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>复现WMCTF时发现都是没怎么接触过的知识，决定把每道题涉及到的知识点都好好学习一下。</p>
 <details class="pink" data-header-exclude><summary><i class="fa-solid fa-chevron-right"></i>参考文章： 点击查看 </summary>
               <div class='content'>
@@ -913,7 +913,7 @@
   </entry>
   <entry>
     <title>第三章之从零开始学习PyTorch2.0</title>
-    <url>/:/abbrlink</url>
+    <url>/posts/%E7%AC%AC%E4%B8%89%E7%AB%A0%E4%B9%8B%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E5%AD%A6%E4%B9%A0PyTorch2.0.html</url>
     <content><![CDATA[<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>本章主要是演示了一个深度学习框架的设计过程，进一步的熟悉深度学习框架。</p>
 <h1 id="实战MNIST手写体数字识别"><a href="#实战MNIST手写体数字识别" class="headerlink" title="实战MNIST手写体数字识别"></a>实战MNIST手写体数字识别</h1><p>首先我们了解一下<code>MNIST</code>数据集的数据标签，即<code>y_train_label</code></p>
 <p>首先打印数据集的前十个标签</p>
@@ -984,7 +984,7 @@
   </entry>
   <entry>
     <title>深度学习模型实战之图像降噪</title>
-    <url>/:/abbrlink</url>
+    <url>/posts/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E6%A8%A1%E5%9E%8B%E5%AE%9E%E6%88%98%E4%B9%8B%E5%9B%BE%E5%83%8F%E9%99%8D%E5%99%AA.html</url>
     <content><![CDATA[<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>最近在读从零开始的大模型开发，本文以记录第二章的PyTorch2.0的环境搭建以及第一个深度学习模型实战之图像降噪。</p>
 <h1 id="环境搭建之安装PyTorch-2-0"><a href="#环境搭建之安装PyTorch-2-0" class="headerlink" title="环境搭建之安装PyTorch 2.0"></a>环境搭建之安装PyTorch 2.0</h1><p>安装<code>anaconda</code>：<a class="link"   href="https://www.anaconda.com/" >Anaconda | The Operating System for AI<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
 <p>安装<code>PyTorch</code>：<a class="link"   href="https://pytorch.org/" >PyTorch<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
@@ -1054,7 +1054,7 @@
   </entry>
   <entry>
     <title>针对于自定义神经网络框架的基本设计</title>
-    <url>/:/abbrlink</url>
+    <url>/posts/%E9%92%88%E5%AF%B9%E4%BA%8E%E8%87%AA%E5%AE%9A%E4%B9%89%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E6%A1%86%E6%9E%B6%E7%9A%84%E5%9F%BA%E6%9C%AC%E8%AE%BE%E8%AE%A1.html</url>
     <content><![CDATA[<p>针对于设计自定义神经网络框架，最基本的过程包括两个阶段，就是训练和预测，做了个思维导图就是这样的：</p>
 <p><figure class="image-caption"><img  
                      lazyload
