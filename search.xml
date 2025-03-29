@@ -1364,4 +1364,57 @@ import {initHBE} from "/js/plugins/hbe.js";
         <tag>ChatGLM</tag>
       </tags>
   </entry>
+  <entry>
+    <title>TP-LINK-WR941N-CVE-2017-13772复现</title>
+    <url>/posts/TP-LINK-WR941N-CVE-2017-13772%E5%A4%8D%E7%8E%B0.html</url>
+    <content><![CDATA[<h1 id="漏洞描述"><a href="#漏洞描述" class="headerlink" title="漏洞描述"></a>漏洞描述</h1><p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250329190616771.png"
+                      alt="image-20250329190616771"
+                ><figcaption>image-20250329190616771</figcaption></figure></p>
+<h1 id="固件下载"><a href="#固件下载" class="headerlink" title="固件下载"></a>固件下载</h1><p><a class="link"   href="http://static.tp-link.com/TL-WR940N(US)_V4_160617_1476690524248q.zip" >下载地址<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<h1 id="固件解压"><a href="#固件解压" class="headerlink" title="固件解压"></a>固件解压</h1><p>这里有个坑，如果不是最新版本的<code>binwalk</code>，解压之后还要用其他工具解压，我试了网上的所有办法，但可能是环境问题，导致都没成功，最后编译了一个<code>binwalkv3</code>，可以直接提取；</p>
+<h1 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h1><p>还是坑；</p>
+<p>环境配置的话前面mips的文章就好了；（但注意是大端序，需要下载大端序的镜像）</p>
+<p>调试的话把<code>gdbserver</code>传到虚拟机的<code>/tmp</code>即可；但是起服务时一直在报错，</p>
+<div class="code-container" data-rel="Sh"><figure class="iseeu highlight sh"><table><tr><td class="code"><pre><span class="line">open device ar7100_gpio_chrdev failed</span><br><span class="line">open device ar7100_gpio_chrdev failed</span><br></pre></td></tr></table></figure></div>
+
+<p>可能需要某个驱动，这里我还是没有模拟成功；</p>
+<p>那就简单分析一下漏洞得了；</p>
+<p>还是通过<code>recvform</code>回溯到<code>main</code>函数，之后根据漏洞描述搜索字符串<code>ping_addr</code></p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250329194016680.png"
+                      alt="image-20250329194016680"
+                ><figcaption>image-20250329194016680</figcaption></figure></p>
+<p>之后追踪参数<code>Env</code>，</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250329194039111.png"
+                      alt="image-20250329194039111"
+                ><figcaption>image-20250329194039111</figcaption></figure></p>
+<p>跟进这个函数</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250329194345820.png"
+                      alt="image-20250329194345820"
+                ><figcaption>image-20250329194345820</figcaption></figure></p>
+<p>发现有<code>strcpy</code>这种在路由器栈溢出漏洞的经典函数，但是IDA分析会有问题，该程序是大端序，实际上是<code>strcpy(v23, ping_addr)</code>，IDA分析的有些问题。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>实际上我在分析该漏洞前是满心欢喜的，因为网络上的文章都是进行了调试以及对于<code>mips</code>架构的<code>shellcode</code>编写的学习，而经历了许多环境搭建问题后，我觉得我对于漏洞复现环境搭建哈市学习到了很多，但这题是因为我没有设备的原因还是因为我模拟环境的步骤有问题，我还没有什么头绪。</p>
+]]></content>
+      <categories>
+        <category>IOT</category>
+        <category>CVE</category>
+        <category>TP-Link</category>
+      </categories>
+      <tags>
+        <tag>IOT</tag>
+        <tag>CVE</tag>
+        <tag>TP-Link</tag>
+      </tags>
+  </entry>
 </search>
