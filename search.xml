@@ -1796,4 +1796,137 @@
         <tag>D-Link</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Tenda 路由器 CVE-2022-37810复现</title>
+    <url>/posts/Tenda%E8%B7%AF%E7%94%B1%E5%99%A8CVE-2022-37810%E5%A4%8D%E7%8E%B0.html</url>
+    <content><![CDATA[<h1 id="漏洞描述"><a href="#漏洞描述" class="headerlink" title="漏洞描述"></a>漏洞描述</h1><p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250414204505674.png"
+                      alt="image-20250414204505674"
+                ><figcaption>image-20250414204505674</figcaption></figure></p>
+<h1 id="固件下载"><a href="#固件下载" class="headerlink" title="固件下载"></a>固件下载</h1><p><a class="link"   href="https://www.tenda.com.cn/material/show/102766" >下载链接<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<h1 id="固件模拟"><a href="#固件模拟" class="headerlink" title="固件模拟"></a>固件模拟</h1><p>根据以往经验知道是<code>/bin/httpd</code>服务</p>
+<p>先尝试用户级模拟，毕竟可能需要patch和配置虚拟网卡</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250414205255653.png"
+                      alt="image-20250414205255653"
+                ><figcaption>image-20250414205255653</figcaption></figure></p>
+<p>根据报错的字符串找到错误流程的位置</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250414205857610.png"
+                      alt="image-20250414205857610"
+                ><figcaption>image-20250414205857610</figcaption></figure></p>
+<p>看到主要是<code>apmib_init</code>函数的返回值控制了我们的报错，在网上主要是两种方法来处理，一种是找到定义该函数的库文件，找到对应的so文件，然后重新编写编译一个.so文件，定义该函数返回1即可。或者直接patch掉；我的习惯是直接patch</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250414211838841.png"
+                      alt="image-20250414211838841"
+                ><figcaption>image-20250414211838841</figcaption></figure></p>
+<p>需要把这里的跳转直接全部nop到正常执行的部分</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250414211847451.png"
+                      alt="image-20250414211847451"
+                ><figcaption>image-20250414211847451</figcaption></figure></p>
+<p>再次运行</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250414212511375.png"
+                      alt="image-20250414212511375"
+                ><figcaption>image-20250414212511375</figcaption></figure></p>
+<p>是另一个报错了</p>
+<p>同样的方法即可</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250414213256209.png"
+                      alt="image-20250414213256209"
+                ><figcaption>image-20250414213256209</figcaption></figure></p>
+<p>ok了，接下来就是配置虚拟网卡了</p>
+<p>根据字符串找到赋值ip的地方最后找到</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250414214851866.png"
+                      alt="image-20250414214851866"
+                ><figcaption>image-20250414214851866</figcaption></figure></p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="code"><pre><span class="line">sudo brctl addbr br0</span><br><span class="line">sudo ip addr add 192.168.0.1/24 dev br0</span><br><span class="line">ip -br -4 a</span><br></pre></td></tr></table></figure></div>
+
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250414214646260.png"
+                      alt="image-20250414214646260"
+                ><figcaption>image-20250414214646260</figcaption></figure></p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250414214912103.png"
+                      alt="image-20250414214912103"
+                ><figcaption>image-20250414214912103</figcaption></figure></p>
+<p>模拟成功了</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250414214949904.png"
+                      alt="image-20250414214949904"
+                ><figcaption>image-20250414214949904</figcaption></figure></p>
+<p>系统级模拟只需要传到qemu虚拟机里面即可，这里不赘述了（主要就是创建好init里面创建的文件）</p>
+<p>系统级模拟成功</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250414220622058.png"
+                      alt="image-20250414220622058"
+                ><figcaption>image-20250414220622058</figcaption></figure></p>
+<h1 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h1><p>根据漏洞描述找到漏洞函数</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250414220828631.png"
+                      alt="image-20250414220828631"
+                ><figcaption>image-20250414220828631</figcaption></figure></p>
+<p>这里控制好<code>mac</code>参数就可以进行命令注入，而这个函数一眼就可以看出应该是goform过程下的接口</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250414221305857.png"
+                      alt="image-20250414221305857"
+                ><figcaption>image-20250414221305857</figcaption></figure></p>
+<p>访问下该接口试下</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250414221344645.png"
+                      alt="image-20250414221344645"
+                ><figcaption>image-20250414221344645</figcaption></figure></p>
+<p>接着分析有何限制，没啥限制，就是获取了mac参数的值，若没有就用默认的<code>00:01:02:11:22:33</code>，那我们可以直接在后面拼接命令</p>
+<h1 id="POC"><a href="#POC" class="headerlink" title="POC"></a>POC</h1><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="code"><pre><span class="line">http://192.168.0.6/goform/WriteFacMac?mac=00:01:02:11:22:33%20||%20touch%20/tmp/Berial.txt</span><br></pre></td></tr></table></figure></div>
+
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250414222645161.png"
+                      alt="image-20250414222645161"
+                ><figcaption>image-20250414222645161</figcaption></figure></p>
+]]></content>
+      <categories>
+        <category>IOT</category>
+        <category>CVE</category>
+        <category>Tenda</category>
+      </categories>
+      <tags>
+        <tag>IOT</tag>
+        <tag>CVE</tag>
+        <tag>Tenda</tag>
+      </tags>
+  </entry>
 </search>
