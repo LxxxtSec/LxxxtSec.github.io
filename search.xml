@@ -1929,4 +1929,205 @@
         <tag>Tenda</tag>
       </tags>
   </entry>
+  <entry>
+    <title>《模拟固件下的patch与hook》学习</title>
+    <url>/posts/%E6%A8%A1%E6%8B%9F%E5%9B%BA%E4%BB%B6%E4%B8%8B%E7%9A%84patch%E4%B8%8Ehook%E5%AD%A6%E4%B9%A0.html</url>
+    <content><![CDATA[<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>在之前的固件模拟中我遇到了各种各样的问题，大多都是通过patch的方法去解决，知道hook的办法却一直没有用过，正好刷到了<a class="link"   href="https://www.iotsec-zone.com/article/304" >模拟启动ASUS华硕路由器的http服务 - IOTsec-Zone<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>这篇文章，之前我复现华硕的漏洞时也是没有成功模拟，发现这篇文章利用了hook的办法，并且引用了《模拟固件下的patch与hook》，是同一作者写的，所以准备学习一下这两篇文章，本文主要学习hook方法，下篇文章学习华硕的固件模拟。</p>
+<p>由于原文中只给了某些示例和演示过程，而我又没怎么接触过hook，所以示例用的还是原文中的示例，我主要补充一些详细的知识点。</p>
+<h1 id="引入LD-PRELOAD"><a href="#引入LD-PRELOAD" class="headerlink" title="引入LD_PRELOAD"></a>引入LD_PRELOAD</h1><h2 id="LD-PRELOAD实现注入的原理"><a href="#LD-PRELOAD实现注入的原理" class="headerlink" title="LD_PRELOAD实现注入的原理"></a>LD_PRELOAD实现注入的原理</h2><p><code>LD_PRELOAD</code>是linux系统中的一个环境变量，可以指定优先加载某个动态库。当主程序中有相同的符号出现在不同的动态库中，会使用优先加载的动态库中的符号。</p>
+<p>根据这个原理，如果要被<code>hook</code>的函数在动态库<code>a</code>中，那么可以重载一个相同定义的函数并把它编译成动态库<code>b</code>，并使用<code>LD_PRELOAD</code>执行优先加载动态库<code>b</code>。当启动主程序的时候，主程序会调用动态库<code>b</code>中的函数。</p>
+<p>通过这个环境变量，我们可以在主程序和其动态链接库的中间加载别的动态链接库，去覆盖正常的函数库。</p>
+<p>默认linux的动态库链接顺序：<code>LD_PRELOAD --&gt; LD_LIBRARY_PATH --&gt; /lib --&gt; /usr/lib</code>；</p>
+<h2 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h2><p>该例子是利用<code>strncmp</code>对比密码是否正确</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="code"><pre><span class="line">// gcc -g test1.c -o test1</span><br><span class="line">#include &lt;stdio.h&gt;</span><br><span class="line">#include &lt;string.h&gt;</span><br><span class="line">#include &lt;unistd.h&gt;</span><br><span class="line"></span><br><span class="line">void init()&#123;</span><br><span class="line">    setbuf(stdin,NULL);</span><br><span class="line">    setbuf(stdout,NULL);</span><br><span class="line">    setbuf(stderr,NULL);</span><br><span class="line">&#125;</span><br><span class="line">int main()&#123;</span><br><span class="line">    init();</span><br><span class="line">    char* password = &quot;berial&quot;;</span><br><span class="line">    char buffer[0x10] = &quot;&quot;;</span><br><span class="line">    printf(&quot;plz input your password!\n&quot;);</span><br><span class="line">    read(0,buffer,0x10);</span><br><span class="line">    printf(&quot;Your input is %s&quot;,buffer);</span><br><span class="line">    if (!strncmp(password,buffer,strlen(buffer)-1))&#123;    		// strlen(buffer)-1 去掉最后的\n</span><br><span class="line">       printf(&quot;\033[0;32;32mYour password is Correct!\n\033[m&quot;);</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        printf(&quot;\033[0;32;31mYour password is Wrong!\n\033[m&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416203725567.png"
+                      alt="image-20250416203725567"
+                ><figcaption>image-20250416203725567</figcaption></figure></p>
+<p>接着我们自己编写编译一个<code>hook.so</code>，并且使用<code>LD_PRELOAD</code>加载该动态链接库：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="code"><pre><span class="line">// gcc -g -shared -fPIC hook.c -o hook.so</span><br><span class="line">#include &lt;stdlib.h&gt;</span><br><span class="line">#include &lt;stdio.h&gt;</span><br><span class="line"></span><br><span class="line">int strncmp(const char *__s1, const char *__s2, size_t __n)&#123;</span><br><span class="line">    // Dynamic Link Library have&#x27;t main fucntion</span><br><span class="line">    // We want to hook strncmp</span><br><span class="line">    // int strncmp(const char *__s1, const char *__s2, size_t __n)</span><br><span class="line">    if(getenv(&quot;LD_PRELOAD&quot;) != NULL)&#123;</span><br><span class="line">        printf(&quot;\033[0;32;32mSuccess hook strncmp\n\033[m&quot;);</span><br><span class="line">        unsetenv(&quot;LD_PRELOAD&quot;);         			// 必须清除LD_PRELOAD环境变量，否则会陷入hook的死循环。</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        printf(&quot;\033[0;32;31mFail to hook strncmp!\n\033[m&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">    return 0;                       				// return 0</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416204207958.png"
+                      alt="image-20250416204207958"
+                ><figcaption>image-20250416204207958</figcaption></figure></p>
+<p>此时，无论我们输入什么都会显示密码正确，使用gdb动态调试看下</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416205145453.png"
+                      alt="image-20250416205145453"
+                ><figcaption>image-20250416205145453</figcaption></figure></p>
+<p>步进到<code>strncmp</code>函数</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416205225285.png"
+                      alt="image-20250416205225285"
+                ><figcaption>image-20250416205225285</figcaption></figure></p>
+<p>确实是我们写的<code>strncmp</code>。</p>
+<h2 id="注"><a href="#注" class="headerlink" title="注"></a>注</h2><p><code>LD_PRELOAD=$PWD/hook.so ./test1</code>等同于：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="code"><pre><span class="line">export LD_PRELOAD=$PWD/hook.so</span><br><span class="line">./test1</span><br></pre></td></tr></table></figure></div>
+
+<h1 id="Topic-1（Hack-In-The-Box-Amsterdam-Bin-100）"><a href="#Topic-1（Hack-In-The-Box-Amsterdam-Bin-100）" class="headerlink" title="Topic.1（Hack In The Box Amsterdam: Bin 100）"></a>Topic.1（Hack In The Box Amsterdam: Bin 100）</h1><p><a class="link"   href="https://github.com/ctfs/write-ups-2014/blob/master/hack-in-the-box-amsterdam-2014/bin-100/hitb-bin100.elf" >题目下载链接<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>以2014年的Hack In The Box Amsterdam: Bin 100逆向题作为小菜，hook方法之一的LD_PRELOAD开始在本题中崭露头角：</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416211056723.png"
+                      alt="image-20250416211056723"
+                ><figcaption>image-20250416211056723</figcaption></figure></p>
+<p>程序一直打印英文句子，并且大小写是混乱的，我们用IDA来分析</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416211332503.png"
+                      alt="image-20250416211332503"
+                ><figcaption>image-20250416211332503</figcaption></figure></p>
+<p>原本是正常的，那么就说明有流程对字母会有大小写的转换</p>
+<p>我把程序分为两部分，一部分打印英文句子，另一部分打印flag</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416212053083.png"
+                      alt="image-20250416212053083"
+                ><figcaption>image-20250416212053083</figcaption></figure></p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416212131472.png"
+                      alt="image-20250416212131472"
+                ><figcaption>image-20250416212131472</figcaption></figure></p>
+<p>根据第一部分，我们需要v19在最后循环结束的值，这也是为什么这个不能直接nop掉sleep的原因，但sleep(1)在循环多次后耗费的时间又很长，并且调用sleep的最终目的是为了v6的增加而非真的要等待1s；所以我们可以利用<code>LD_PRELOAD</code>的预先加载功能达到<code>hook</code>这两个函数的目的；</p>
+<p>而我们的目的就是每次v6自增1，所以修改<code>sleep</code>函数和<code>time</code>函数</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 编译命令：gcc -shared -fPIC hook_time.c -o hook_time.so</span><br><span class="line">static int t = 0;		// t变量也就是v6,该值可以为任意值，因为重点在于时间差（v6 - v18）而非某个时刻</span><br><span class="line"></span><br><span class="line">void sleep(int sec) &#123;</span><br><span class="line">    t += sec;			// count = count + sec</span><br><span class="line">&#125;						// 每循环一次，count加1</span><br><span class="line"></span><br><span class="line">int time() &#123;</span><br><span class="line">    return t;</span><br><span class="line">&#125;</span><br><span class="line">// 源码的srand(0xDEFACED - v18 + v6);中的v6 - v18表示程序已经启动的时间。</span><br></pre></td></tr></table></figure></div>
+
+<p>printf到最终在屏幕显示所耗费的时间不会拖延程序执行代码的时间，就算是程序在短时间内打印出大量数据，则打印出某一数据时该printf肯定早已完成执行（屏幕的显示与printf的执行并不同步）。</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416222832329.png"
+                      alt="image-20250416222832329"
+                ><figcaption>image-20250416222832329</figcaption></figure></p>
+<p>拿到flag了</p>
+<h1 id="Topic-2-（Cisco-RV160W固件模拟“qemu-system”）"><a href="#Topic-2-（Cisco-RV160W固件模拟“qemu-system”）" class="headerlink" title="Topic.2 （Cisco RV160W固件模拟“qemu-system”）"></a>Topic.2 （Cisco RV160W固件模拟“qemu-system”）</h1><p><a class="link"   href="https://download.csdn.net/download/The54No1/88269511" >固件下载地址<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>，该固件涉及的漏洞为CVE-2021-1291，本文主要是学习环境模拟，所以不分析漏洞，后面会发文章分析；</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416224025030.png"
+                      alt="image-20250416224025030"
+                ><figcaption>image-20250416224025030</figcaption></figure></p>
+<p>接着我们系统级模拟</p>
+<p>本机：</p>
+<p>net.sh：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="code"><pre><span class="line">sudo tunctl -t tap0 -u `whoami`  # 为了与 QEMU 虚拟机通信，添加一个虚拟网卡</span><br><span class="line">sudo ifconfig tap0 10.10.10.1/24 # 为添加的虚拟网卡配置 IP 地址</span><br></pre></td></tr></table></figure></div>
+
+<p>run.sh：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="code"><pre><span class="line">#!/bin/sh</span><br><span class="line">qemu-system-arm \</span><br><span class="line">	-M vexpress-a9 \</span><br><span class="line">	-kernel /home/lxxxt/qemu-images/arm/vmlinuz-3.2.0-4-vexpress \</span><br><span class="line">	-initrd /home/lxxxt/qemu-images/arm/initrd.img-3.2.0-4-vexpress \</span><br><span class="line">	-drive if=sd,file=/home/lxxxt/qemu-images/arm/debian_wheezy_armhf_standard.qcow2 \</span><br><span class="line">	-append &quot;root=/dev/mmcblk0p2 console=ttyAMA0&quot; \</span><br><span class="line">	-net nic -net tap,ifname=tap0,script=no,downscript=no -nographic</span><br></pre></td></tr></table></figure></div>
+
+<p>qemu虚拟机：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="code"><pre><span class="line">ifconfig eth0 10.10.10.2/24</span><br></pre></td></tr></table></figure></div>
+
+<p>文件系统用python传入即可</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416225139049.png"
+                      alt="image-20250416225139049"
+                ><figcaption>image-20250416225139049</figcaption></figure></p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="code"><pre><span class="line">$ chmod -R 777 ./rootfs</span><br><span class="line">$ mount -o bind /dev ./rootfs/dev &amp;&amp; mount -t proc /proc ./rootfs/proc</span><br><span class="line">$ chroot ./rootfs sh</span><br></pre></td></tr></table></figure></div>
+
+<p>该路由器的服务有<code>mini_httpd</code>提供，运行下试试</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416225814953.png"
+                      alt="image-20250416225814953"
+                ><figcaption>image-20250416225814953</figcaption></figure></p>
+<p>运行失败了，我们用ida去看下，根据报错字符串搜索</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416230330448.png"
+                      alt="image-20250416230330448"
+                ><figcaption>image-20250416230330448</figcaption></figure></p>
+<p>错误原因就是函数<code>setsockopt</code>在这是有关套接字的选项时由于参数不合法导致的函数返回值小于0，该函数返回值为1就行了。</p>
+<p>首先安装编译arm的依赖</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="code"><pre><span class="line">sudo apt install libncurses5-dev gcc-arm-linux-gnueabi build-essential synaptic gcc-aarch64-linux-gnu</span><br></pre></td></tr></table></figure></div>
+
+<p>gcc-arm-linux-gnueabi所采用的是glibc</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416232106181.png"
+                      alt="image-20250416232106181"
+                ><figcaption>image-20250416232106181</figcaption></figure></p>
+<p>而Cisco RV160W则采用的是eglibc</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416232238823.png"
+                      alt="image-20250416232238823"
+                ><figcaption>image-20250416232238823</figcaption></figure></p>
+<p>glibc与eglibc编译得到的可执行程序是相互兼容的；</p>
+<p><code>hook</code>代码：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 编译命令：arm-linux-gnueabi-gcc -shared -fPIC hook.c -o hook.so</span><br><span class="line">#include &lt;sys/socket.h&gt;</span><br><span class="line"> </span><br><span class="line">int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen)&#123;</span><br><span class="line">    return 1;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416232539250.png"
+                      alt="image-20250416232539250"
+                ><figcaption>image-20250416232539250</figcaption></figure></p>
+<p>接着启动程序试试</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416232740517.png"
+                      alt="image-20250416232740517"
+                ><figcaption>image-20250416232740517</figcaption></figure></p>
+<p>成功启动了，但是403了，搜索下字符串</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416232851502.png"
+                      alt="image-20250416232851502"
+                ><figcaption>image-20250416232851502</figcaption></figure></p>
+<p>直接给nop了</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416234252344.png"
+                      alt="image-20250416234252344"
+                ><figcaption>image-20250416234252344</figcaption></figure></p>
+<p>nop之后发现界面不是很正常，回文件系统找原因</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250416234414781.png"
+                      alt="image-20250416234414781"
+                ><figcaption>image-20250416234414781</figcaption></figure></p>
+<p>发现了<code>.sh</code>和<code>.init</code>文件，回去执行init</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://berial123.oss-cn-beijing.aliyuncs.com/undefinedimage-20250417000153821.png"
+                      alt="image-20250417000153821"
+                ><figcaption>image-20250417000153821</figcaption></figure></p>
+<p>但我的界面还是有些问题，不知道是什么原因。</p>
+]]></content>
+      <categories>
+        <category>IOT</category>
+        <category>其他</category>
+      </categories>
+      <tags>
+        <tag>IOT</tag>
+        <tag>其他</tag>
+      </tags>
+  </entry>
 </search>
