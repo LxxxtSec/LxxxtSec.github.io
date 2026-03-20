@@ -2198,7 +2198,7 @@
   </entry>
   <entry>
     <title>ChatClient 全面解析</title>
-    <url>/posts/2022qwbhouse_of_cat.html</url>
+    <url>/posts/ChatClient_%E5%85%A8%E9%9D%A2%E8%A7%A3%E6%9E%90.html</url>
     <content><![CDATA[<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>​	跑通一个 <code>Spring ai</code> 应用用到了 <code>ChatClient</code> ，这篇文章会解析 ‘ChatClient’ 的完整用法，这个 <em>API</em> 是整个模块的基础，后面全部都会用到它。</p>
 <h1 id="ChatClient-和-ChatModel-的关系"><a href="#ChatClient-和-ChatModel-的关系" class="headerlink" title="ChatClient 和 ChatModel 的关系"></a>ChatClient 和 ChatModel 的关系</h1><p>​	在 <code>Spring AI</code> 中有两个东西比较容易混：</p>
 <ul>
